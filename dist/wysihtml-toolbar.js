@@ -1,5 +1,5 @@
 /**
- * @license wysihtml v0.5.5
+ * @license wysihtml v0.5.5.1
  * https://github.com/Voog/wysihtml
  *
  * Author: Christopher Blum (https://github.com/tiff)
@@ -10,7 +10,7 @@
  *
  */
 var wysihtml5 = {
-  version: "0.5.5",
+  version: "0.5.5.1",
 
   // namespaces
   commands:   {},
@@ -135,7 +135,7 @@ var wysihtml5 = {
     };
   }
 
-  // closest and matches polyfill
+  // closest, matches, and remove polyfill
   // https://github.com/jonathantneal/closest
   (function (ELEMENT) {
     ELEMENT.matches = ELEMENT.matches || ELEMENT.mozMatchesSelector || ELEMENT.msMatchesSelector || ELEMENT.oMatchesSelector || ELEMENT.webkitMatchesSelector || function matches(selector) {
@@ -164,7 +164,14 @@ var wysihtml5 = {
 
       return element;
     };
-  }(Element.prototype));
+
+    ELEMENT.remove = ELEMENT.remove || function remove() {
+      if (this.parentNode) {
+        this.parentNode.removeChild(this);
+      }
+    };
+
+  }(win.Element.prototype));
 
   // Element.classList for ie8-9 (toggle all IE)
   // source http://purl.eligrey.com/github/classList.js/blob/master/classList.js
@@ -4390,8 +4397,7 @@ wysihtml5.polyfills(window, document);
     }
 
     return api;
-}, this);
-;/**
+}, this);;/**
  * Text range module for Rangy.
  * Text-based manipulation and searching of ranges and selections.
  *
@@ -17596,7 +17602,9 @@ wysihtml5.views.View = Base.extend(
         var selection = composer.selection.getSelection(),
             aNode = selection.anchorNode,
             listNode, prevNode, firstNode,
-            isInBeginnig = composer.selection.caretIsFirstInSelection();
+            isInBeginnig = composer.selection.caretIsFirstInSelection(),
+            prevNode,
+            intermediaryNode;
 
         // Fix caret at the beginnig of first textNode in LI
         if (aNode.nodeType === 3 && selection.anchorOffset === 0 && aNode === aNode.parentNode.firstChild) {
@@ -17608,10 +17616,16 @@ wysihtml5.views.View = Base.extend(
           prevNode = domNode(aNode).prev({nodeTypes: [1,3], ignoreBlankTexts: true});
           if (!prevNode && aNode.parentNode && (aNode.parentNode.nodeName === "UL" || aNode.parentNode.nodeName === "OL")) {
             prevNode = domNode(aNode.parentNode).prev({nodeTypes: [1,3], ignoreBlankTexts: true});
+            intermediaryNode = aNode.parentNode;
           }
           if (prevNode) {
             firstNode = aNode.firstChild;
             domNode(aNode).transferContentTo(prevNode, true);
+
+            if (intermediaryNode && intermediaryNode.children.length === 0){
+              intermediaryNode.remove();
+            }
+
             if (firstNode) {
               composer.selection.setBefore(firstNode);
             } else if (prevNode) {
